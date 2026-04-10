@@ -28,6 +28,14 @@ interface CaseProps {
 export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }: CaseProps) {
   const d = theme === "dark";
 
+  // Safety: ensure arrays are actually arrays (n8n might send strings or null)
+  const iocs = Array.isArray(caseData.iocs) ? caseData.iocs : [];
+  const actions = Array.isArray(caseData.actions) ? caseData.actions : [];
+  const mitre = (caseData.mitreTechniques || "").trim();
+  const summary = caseData.summary || "No summary available.";
+  const severity = typeof caseData.severity === "number" ? caseData.severity : 5;
+  const confidence = typeof caseData.confidence === "number" ? caseData.confidence : null;
+
   const sourceLabel: Record<string, string> = {
     gmail: "Gmail",
     render_server: "Render Server",
@@ -77,15 +85,15 @@ export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }:
           <span className={`text-xl font-bold ${verdictColor[caseData.verdict] || (d ? "text-white" : "text-gray-900")}`}>
             {caseData.verdict}
           </span>
-          <SeverityBadge severity={caseData.severity} />
+          <SeverityBadge severity={severity} />
         </div>
-        {caseData.confidence && (
+        {confidence && (
           <div className="flex items-center gap-2">
             <span className={`text-xs ${d ? "text-gray-400" : "text-gray-500"}`}>Confidence:</span>
             <div className={`flex-1 h-2 rounded-full overflow-hidden ${d ? "bg-gray-700" : "bg-gray-200"}`}>
-              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${caseData.confidence}%` }} />
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${confidence}%` }} />
             </div>
-            <span className={`text-xs ${d ? "text-gray-300" : "text-gray-600"}`}>{caseData.confidence}%</span>
+            <span className={`text-xs ${d ? "text-gray-300" : "text-gray-600"}`}>{confidence}%</span>
           </div>
         )}
         <div className={`flex gap-4 text-xs ${d ? "text-gray-400" : "text-gray-500"}`}>
@@ -98,15 +106,15 @@ export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }:
       {/* Summary */}
       <div>
         <h3 className={`text-sm font-semibold mb-2 ${d ? "text-gray-300" : "text-gray-700"}`}>Summary</h3>
-        <p className={`text-sm leading-relaxed ${d ? "text-gray-400" : "text-gray-600"}`}>{caseData.summary}</p>
+        <p className={`text-sm leading-relaxed ${d ? "text-gray-400" : "text-gray-600"}`}>{summary}</p>
       </div>
 
       {/* MITRE ATT&CK */}
-      {caseData.mitreTechniques && (
+      {mitre && (
         <div>
           <h3 className={`text-sm font-semibold mb-2 ${d ? "text-gray-300" : "text-gray-700"}`}>MITRE ATT&CK</h3>
           <div className="flex flex-wrap gap-2">
-            {caseData.mitreTechniques.split(",").map((t) => (
+            {mitre.split(",").map((t) => (
               <a
                 key={t.trim()}
                 href={`https://attack.mitre.org/techniques/${t.trim().replace(".", "/")}/`}
@@ -149,11 +157,11 @@ export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }:
       })()}
 
       {/* IOCs */}
-      {caseData.iocs.length > 0 && (
+      {iocs.length > 0 && (
         <div>
           <h3 className={`text-sm font-semibold mb-2 ${d ? "text-gray-300" : "text-gray-700"}`}>Indicators of Compromise</h3>
           <div className="space-y-1">
-            {caseData.iocs.map((ioc) => (
+            {iocs.map((ioc) => (
               <div key={ioc.id} className="flex items-center gap-2 text-xs">
                 <span className={`px-1.5 py-0.5 rounded font-mono uppercase ${d ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-500"}`}>{ioc.type}</span>
                 <span className={`font-mono ${d ? "text-gray-300" : "text-gray-700"}`}>{ioc.value}</span>
@@ -164,11 +172,11 @@ export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }:
       )}
 
       {/* Actions Taken */}
-      {caseData.actions.length > 0 && (
+      {actions.length > 0 && (
         <div>
           <h3 className={`text-sm font-semibold mb-2 ${d ? "text-gray-300" : "text-gray-700"}`}>Actions Taken</h3>
           <div className="space-y-1">
-            {caseData.actions.map((action) => (
+            {actions.map((action) => (
               <div key={action.id} className="flex items-center gap-2 text-xs">
                 <span className={`w-2 h-2 rounded-full ${action.status === "completed" ? "bg-green-500" : "bg-yellow-500"}`} />
                 <span className={d ? "text-gray-300" : "text-gray-700"}>
