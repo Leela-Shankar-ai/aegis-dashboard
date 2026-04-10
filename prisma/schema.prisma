@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Case {
+  id               String   @id @default(cuid())
+  source           String   // gmail, render_server, windows_logs
+  alertType        String   // phishing_email, sql_injection, brute_force, etc.
+  severity         Int      // 1-10
+  verdict          String   // MALICIOUS, SUSPICIOUS, BENIGN, FALSE_POSITIVE
+  confidence       Int?     // 0-100
+  summary          String
+  rawData          String   // JSON string of original alert
+  investigationLog String   // JSON string of LLM reasoning steps
+  actionsTaken     String   // JSON string of actions taken
+  mitreTechniques  String   // comma-separated technique IDs
+  status           String   @default("open") // open, resolved, dismissed
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  iocs    Ioc[]
+  actions Action[]
+}
+
+model Ioc {
+  id             String  @id @default(cuid())
+  caseId         String
+  type           String  // ip, url, domain, hash, email
+  value          String
+  enrichmentData String? // JSON string of VirusTotal/AbuseIPDB results
+
+  case Case @relation(fields: [caseId], references: [id])
+}
+
+model Action {
+  id         String   @id @default(cuid())
+  caseId     String
+  actionType String   // block_ip, block_domain, quarantine_email, send_alert
+  target     String   // the IP/domain/email acted upon
+  status     String   @default("completed") // completed, failed, pending
+  timestamp  DateTime @default(now())
+
+  case Case @relation(fields: [caseId], references: [id])
+}
