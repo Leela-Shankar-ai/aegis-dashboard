@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import ThreatFeed from "@/components/ThreatFeed";
 import CaseDetail from "@/components/CaseDetail";
 import StatsBar from "@/components/StatsBar";
+import AlertPopup from "@/components/AlertPopup";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -42,6 +43,9 @@ export default function Dashboard() {
   const [cases, setCases] = useState<CaseData[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [alertCase, setAlertCase] = useState<CaseData | null>(null);
+  const knownIds = useRef<Set<string>>(new Set());
+  const isFirstLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
     try {
@@ -49,8 +53,24 @@ export default function Dashboard() {
         fetch("/api/cases"),
         fetch("/api/stats"),
       ]);
-      const casesData = await casesRes.json();
+      const casesData: CaseData[] = await casesRes.json();
       const statsData = await statsRes.json();
+
+      // Detect new cases (skip on first load to avoid popup for existing data)
+      if (!isFirstLoad.current) {
+        for (const c of casesData) {
+          if (!knownIds.current.has(c.id)) {
+            // New case arrived — show alert popup
+            setAlertCase(c);
+            break; // Show one at a time
+          }
+        }
+      }
+      isFirstLoad.current = false;
+
+      // Track all known IDs
+      knownIds.current = new Set(casesData.map((c) => c.id));
+
       setCases(casesData);
       setStats(statsData);
     } catch (err) {
@@ -77,6 +97,9 @@ export default function Dashboard() {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-gray-950 text-white" : "bg-gray-50 text-gray-900"}`}>
+      {/* Alert Popup — shows when new case arrives */}
+      <AlertPopup caseData={alertCase} onDismiss={() => setAlertCase(null)} />
+
       {/* Header */}
       <header className={`border-b px-6 py-3 ${theme === "dark" ? "border-gray-800 bg-gray-950" : "border-gray-200 bg-white"}`}>
         <div className="flex items-center justify-between">
