@@ -1,5 +1,8 @@
 import { store } from "@/lib/db";
+import { seedDemoData } from "@/lib/seed";
 import { NextRequest } from "next/server";
+
+seedDemoData();
 
 export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get("search") || undefined;
