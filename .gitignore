@@ -42,3 +42,10 @@ next-env.d.ts
 
 /src/generated/prisma
 prisma/dev.db
+
+# Junk copies
+.git - Copy/
+.next - Copy/
+package - Copy.json
+package-lock - Copy.json
+prisma/dev.db
