@@ -6,6 +6,7 @@ import ThreatFeed from "@/components/ThreatFeed";
 import CaseDetail from "@/components/CaseDetail";
 import StatsBar from "@/components/StatsBar";
 import AlertPopup from "@/components/AlertPopup";
+import Chatbot from "@/components/Chatbot";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -182,6 +183,9 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Chatbot */}
+      <Chatbot theme={theme} />
     </div>
   );
 }
