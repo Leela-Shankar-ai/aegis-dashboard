@@ -121,6 +121,33 @@ export default function CaseDetail({ caseData, onStatusChange, theme = "dark" }:
         </div>
       )}
 
+      {/* Raw Email / Alert Content */}
+      {(() => {
+        try {
+          const raw = JSON.parse(caseData.rawData);
+          const emailBody = raw.email_body || raw.data?.body_full || raw.data?.body_preview || raw.body;
+          const subject = raw.data?.subject || raw.subject;
+          const from = raw.data?.from || raw.from || raw.iocs?.sender_email;
+          if (emailBody || subject) {
+            return (
+              <div>
+                <h3 className={`text-sm font-semibold mb-2 ${d ? "text-gray-300" : "text-gray-700"}`}>Original Alert Content</h3>
+                <div className={`rounded-lg p-4 border text-sm space-y-2 ${d ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                  {from && <div><span className={d ? "text-gray-500" : "text-gray-400"}>From: </span><span className={d ? "text-gray-300" : "text-gray-700"}>{from}</span></div>}
+                  {subject && <div><span className={d ? "text-gray-500" : "text-gray-400"}>Subject: </span><span className={d ? "text-gray-300" : "text-gray-700"}>{subject}</span></div>}
+                  {emailBody && (
+                    <div className={`mt-2 pt-2 border-t whitespace-pre-wrap font-mono text-xs leading-relaxed ${d ? "border-gray-700 text-gray-400" : "border-gray-200 text-gray-500"}`}>
+                      {emailBody}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+        } catch { /* rawData not valid JSON */ }
+        return null;
+      })()}
+
       {/* IOCs */}
       {caseData.iocs.length > 0 && (
         <div>
