@@ -2,7 +2,8 @@ import { store } from "@/lib/db";
 import { NextRequest } from "next/server";
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export async function POST(request: NextRequest) {
   const { message } = await request.json();
@@ -81,22 +82,30 @@ ${JSON.stringify(caseSummaries, null, 1)}
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("Gemini error:", err);
+      console.error("Gemini error:", res.status, err);
       return Response.json({
-        reply: generateFallbackResponse(message, allCases, { total, critical, high, malicious, open }),
+        reply: `**AI service error (${res.status}).** ${truncate(err, 300)}\n\nFalling back to basic responses:\n\n${generateFallbackResponse(message, allCases, { total, critical, high, malicious, open })}`,
       });
     }
 
     const data = await res.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response. Please try again.";
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text).filter(Boolean).join("\n") ||
+      `Gemini returned an empty response. Raw: ${truncate(JSON.stringify(data), 300)}`;
 
     return Response.json({ reply });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error("Chat error:", err);
     return Response.json({
-      reply: generateFallbackResponse(message, allCases, { total, critical, high, malicious, open }),
+      reply: `**Connection error.** ${msg}\n\nFalling back to basic responses:\n\n${generateFallbackResponse(message, allCases, { total, critical, high, malicious, open })}`,
     });
   }
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + "…" : s;
 }
 
 // Fallback when Gemini key isn't set — basic keyword responses using real data
@@ -134,5 +143,5 @@ function generateFallbackResponse(
     return `**${openCritical.length} High-Priority Open Cases Need Attention:**\n${openCritical.map((c) => `- **${c.alertType.replace(/_/g, " ")}** (${c.severity}/10) — ${c.summary.substring(0, 80)}...`).join("\n")}\n\nRecommendation: Review and resolve these cases first.`;
   }
 
-  return `I have access to ${stats.total} cases on the dashboard. You can ask me about:\n- **"Give me a status overview"**\n- **"Show critical cases"**\n- **"Any phishing emails?"**\n- **"List attacker IPs"**\n- **"What should I prioritize?"**\n\n*Set GEMINI_API_KEY env variable for full AI-powered responses.*`;
+  return `I have access to ${stats.total} cases on the dashboard. You can ask me about:\n- **"Give me a status overview"**\n- **"Show critical cases"**\n- **"Any phishing emails?"**\n- **"List attacker IPs"**\n- **"What should I prioritize?"**`;
 }
